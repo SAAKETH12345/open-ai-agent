@@ -20,67 +20,57 @@ const handleAudit = async (req: express.Request, res: express.Response) => {
 
     const ai = new GoogleGenAI({ apiKey });
 
-    // Step 1: Analysis Layer
-    const analysisSchema = {
+    const combinedSchema = {
       type: Type.OBJECT,
       properties: {
-        issues: {
-          type: Type.ARRAY,
-          items: {
-            type: Type.OBJECT,
-            properties: {
-              type: { type: Type.STRING, description: 'Type of issue: OWASP, Big O, Memory Leak, Logic' },
-              description: { type: Type.STRING, description: 'Detailed explanation of the issue' },
-              severity: { type: Type.STRING, description: 'Severity level: Low, Medium, High, Critical' }
-            }
-          }
+        analysis: {
+          type: Type.OBJECT,
+          properties: {
+            issues: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  type: { type: Type.STRING, description: 'Type of issue: OWASP, Big O, Memory Leak, Logic' },
+                  description: { type: Type.STRING, description: 'Detailed explanation of the issue' },
+                  severity: { type: Type.STRING, description: 'Severity level: Low, Medium, High, Critical' }
+                }
+              }
+            },
+            overallSeverity: { type: Type.STRING, description: 'Overall severity: Low, Medium, High, Critical' },
+            overallSeverityScore: { type: Type.INTEGER, description: '0 to 100 score where 100 is most severe' }
+          },
+          required: ["issues", "overallSeverity", "overallSeverityScore"]
         },
-        overallSeverity: { type: Type.STRING, description: 'Overall severity: Low, Medium, High, Critical' },
-        overallSeverityScore: { type: Type.INTEGER, description: '0 to 100 score where 100 is most severe' }
+        healData: {
+          type: Type.OBJECT,
+          properties: {
+            healedCode: { type: Type.STRING, description: 'The fully repaired code' },
+            testSuite: { type: Type.STRING, description: 'Jest or PyTest suite proving the fix works' }
+          },
+          required: ["healedCode", "testSuite"]
+        }
       },
-      required: ["issues", "overallSeverity", "overallSeverityScore"]
+      required: ["analysis", "healData"]
     };
 
-    const analysisResponse = await ai.models.generateContent({
+    // Combine into a single prompt to save execution time
+    const response = await ai.models.generateContent({
       model: 'gemini-3.5-flash',
-      contents: `You are the Analysis Layer of the Sentinel Engine. Analyze the following code for vulnerabilities (OWASP Top 10), time complexity issues (Big O), memory leaks, and logical inconsistencies:\n\n\`\`\`\n${code}\n\`\`\``,
+      contents: `You are the Sentinel Engine. Analyze the following code for vulnerabilities (OWASP Top 10), time complexity issues (Big O), memory leaks, and logical inconsistencies. Generate a JSON report of the analysis. Next, generate a 'Healed' version of the code that fixes all identified issues. Finally, generate a comprehensive Jest or PyTest test suite that proves the fixes work and ensures regressions do not occur.\n\nOriginal Code:\n\`\`\`\n${code}\n\`\`\``,
       config: {
         responseMimeType: 'application/json',
-        responseSchema: analysisSchema,
+        responseSchema: combinedSchema,
       }
     });
 
-    const analysis = JSON.parse(analysisResponse.text || '{}');
+    const result = JSON.parse(response.text || '{}');
 
-    // Step 2: Execution Layer (Healing & Testing)
-    const healSchema = {
-      type: Type.OBJECT,
-      properties: {
-        healedCode: { type: Type.STRING, description: 'The fully repaired code' },
-        testSuite: { type: Type.STRING, description: 'Jest or PyTest suite proving the fix works' }
-      },
-      required: ["healedCode", "testSuite"]
-    };
+    res.json(result);
 
-    const healResponse = await ai.models.generateContent({
-      model: 'gemini-3.5-flash',
-      contents: `You are the Execution Layer of the Sentinel Engine. \n\nOriginal Code:\n\`\`\`\n${code}\n\`\`\`\n\nAudit Report:\n${JSON.stringify(analysis, null, 2)}\n\nGenerate a 'Healed' version of the code that fixes all identified issues. Then, generate a comprehensive Jest or PyTest test suite that proves the fixes work and ensures regressions do not occur.`,
-      config: {
-        responseMimeType: 'application/json',
-        responseSchema: healSchema,
-      }
-    });
-
-    const healData = JSON.parse(healResponse.text || '{}');
-
-    res.json({
-      analysis,
-      healData
-    });
-
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error during audit and heal:', error);
-    res.status(500).json({ error: 'Failed to process code. Please try again.' });
+    res.status(500).json({ error: 'Failed to process code. ' + (error.message || 'Please try again.') });
   }
 };
 
