@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { Issue, SentinelResponse } from '../types';
-import { Activity, AlertTriangle, CheckCircle, ShieldAlert, Terminal, Download, FileText } from 'lucide-react';
+import { Activity, AlertTriangle, CheckCircle, ShieldAlert, Terminal, Download, FileText, Copy, Check } from 'lucide-react';
 import Markdown from 'react-markdown';
 import { CodeDiff } from './CodeDiff';
 
@@ -13,11 +13,19 @@ interface HospitalViewProps {
 
 export function HospitalView({ code, setCode, result, isLoading }: HospitalViewProps) {
   const [isEditMode, setIsEditMode] = useState(!result);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     if (result) setIsEditMode(false);
     else setIsEditMode(true);
   }, [result]);
+
+  const handleCopy = () => {
+    if (!result) return;
+    navigator.clipboard.writeText(result.healData.healedCode);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   const downloadMarkdown = () => {
     if (!result) return;
@@ -65,16 +73,16 @@ export function HospitalView({ code, setCode, result, isLoading }: HospitalViewP
   }, [result]);
 
   return (
-    <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-6 p-6 h-full min-h-0 overflow-y-auto custom-scrollbar">
+    <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6 p-4 md:p-6 h-full min-h-0 overflow-y-auto custom-scrollbar">
       {/* Dirty Code Panel */}
-      <div className="flex flex-col bg-[#0d0d0d] rounded-xl border border-white/10 overflow-hidden">
-        <div className="px-4 py-3 bg-[#111] border-b border-white/10 flex items-center justify-between">
+      <div className="flex flex-col bg-[#0d0d0d] rounded-xl border border-white/10 overflow-hidden min-h-[300px] lg:min-h-0">
+        <div className="px-3 md:px-4 py-2 md:py-3 bg-[#111] border-b border-white/10 flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2">
-            <Terminal size={16} className="text-slate-400" />
-            <h2 className="font-display font-medium text-sm text-slate-300 uppercase tracking-wider">Vulnerable Code</h2>
+            <Terminal size={14} className="text-slate-400 md:w-4 md:h-4" />
+            <h2 className="font-display font-medium text-xs md:text-sm text-slate-300 uppercase tracking-wider">Vulnerable Code</h2>
           </div>
           {result && (
-            <div className="flex gap-2">
+            <div className="flex gap-1 md:gap-2">
               <button 
                 onClick={() => setIsEditMode(true)}
                 className={`text-[10px] font-mono px-2 py-1 rounded transition-colors ${isEditMode ? 'bg-white/10 text-white' : 'text-slate-500 hover:text-slate-300'}`}
@@ -96,11 +104,11 @@ export function HospitalView({ code, setCode, result, isLoading }: HospitalViewP
               value={code}
               onChange={(e) => setCode(e.target.value)}
               placeholder="Paste vulnerable code here..."
-              className="absolute inset-0 w-full h-full bg-transparent text-[11px] font-mono text-slate-300 p-4 focus:outline-none resize-none custom-scrollbar"
+              className="absolute inset-0 w-full h-full bg-transparent text-[11px] font-mono text-slate-300 p-3 md:p-4 focus:outline-none resize-none custom-scrollbar"
               spellCheck="false"
             />
           ) : (
-            <div className="p-4">
+            <div className="p-3 md:p-4">
               <CodeDiff originalCode={code} healedCode={result.healData.healedCode} side="left" />
             </div>
           )}
@@ -108,31 +116,31 @@ export function HospitalView({ code, setCode, result, isLoading }: HospitalViewP
       </div>
 
       {/* Healed Code Panel */}
-      <div className="flex flex-col bg-[#0d0d0d] rounded-xl border border-white/10 overflow-hidden relative">
-        <div className="px-4 py-3 bg-[#111] border-b border-white/10 flex items-center justify-between">
+      <div className="flex flex-col bg-[#0d0d0d] rounded-xl border border-white/10 overflow-hidden relative min-h-[400px] lg:min-h-0">
+        <div className="px-3 md:px-4 py-2 md:py-3 bg-[#111] border-b border-white/10 flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2">
-            <ShieldAlert size={16} className="text-emerald-500" />
-            <h2 className="font-display font-medium text-sm text-emerald-500 uppercase tracking-wider">Sentinel-Healed Code</h2>
+            <ShieldAlert size={14} className="text-emerald-500 md:w-4 md:h-4" />
+            <h2 className="font-display font-medium text-xs md:text-sm text-emerald-500 uppercase tracking-wider">Sentinel-Healed Code</h2>
           </div>
           {result && (
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 md:gap-3">
               <button
                 onClick={downloadMarkdown}
-                className="flex items-center gap-1.5 px-2.5 py-1 bg-white/5 hover:bg-white/10 border border-white/10 rounded text-xs font-mono transition-colors text-slate-300"
+                className="flex items-center gap-1 md:gap-1.5 px-2 py-1 bg-white/5 hover:bg-white/10 border border-white/10 rounded text-[10px] md:text-xs font-mono transition-colors text-slate-300"
                 title="Download Markdown Report"
               >
-                <Download size={14} />
+                <Download size={12} className="md:w-3.5 md:h-3.5" />
                 <span>Export</span>
               </button>
-              <div className="flex items-center gap-2 text-xs font-mono bg-white/5 px-2 py-1 rounded">
-                <span className="text-slate-400">Severity:</span>
+              <div className="flex items-center gap-1.5 md:gap-2 text-[10px] md:text-xs font-mono bg-white/5 px-2 py-1 rounded">
+                <span className="text-slate-400 hidden sm:inline">Severity:</span>
                 <SeverityBadge severity={result.analysis.overallSeverity} />
               </div>
             </div>
           )}
         </div>
         
-        <div className="flex-1 p-4 overflow-auto relative custom-scrollbar">
+        <div className="flex-1 p-3 md:p-4 overflow-auto relative custom-scrollbar">
           {isLoading ? (
             <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#0d0d0d]/80 backdrop-blur-sm z-10">
               <Activity className="w-8 h-8 text-blue-500 animate-spin mb-4" />
@@ -168,7 +176,17 @@ export function HospitalView({ code, setCode, result, isLoading }: HospitalViewP
               </div>
 
               <div>
-                <h3 className="text-[11px] font-display text-slate-500 uppercase tracking-widest mb-2 italic">Repaired Code</h3>
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-[11px] font-display text-slate-500 uppercase tracking-widest italic">Repaired Code</h3>
+                  <button
+                    onClick={handleCopy}
+                    className="flex items-center gap-1.5 px-2 py-1 bg-white/5 hover:bg-white/10 border border-white/10 rounded text-[10px] font-mono transition-colors text-slate-300"
+                    title="Copy Healed Code"
+                  >
+                    {copied ? <Check size={12} className="text-emerald-500" /> : <Copy size={12} />}
+                    <span className={copied ? "text-emerald-500" : ""}>{copied ? 'Copied!' : 'Copy Code'}</span>
+                  </button>
+                </div>
                 <CodeDiff originalCode={code} healedCode={result.healData.healedCode} side="right" />
               </div>
 
