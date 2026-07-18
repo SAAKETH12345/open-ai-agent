@@ -3,9 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { HospitalView } from './components/HospitalView';
 import { TestSuiteView } from './components/TestSuiteView';
+import { HistorySidebar, HistoryItem } from './components/HistorySidebar';
 import { SentinelResponse } from './types';
 import { Shield, FileCode, Play, AlertCircle } from 'lucide-react';
 
@@ -36,6 +37,21 @@ export default function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'hospital' | 'tests'>('hospital');
+  
+  const [history, setHistory] = useState<HistoryItem[]>(() => {
+    const saved = localStorage.getItem('sentinel_history');
+    return saved ? JSON.parse(saved) : [];
+  });
+  
+  const [activeHistoryId, setActiveHistoryId] = useState<string | undefined>();
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+
+  const handleNewScan = () => {
+    setCode('');
+    setResult(null);
+    setError(null);
+    setActiveHistoryId(undefined);
+  };
 
   const handleAudit = async () => {
     if (!code.trim()) return;
@@ -43,6 +59,7 @@ export default function App() {
     setIsLoading(true);
     setError(null);
     setResult(null);
+    setActiveHistoryId(undefined);
 
     try {
       const response = await fetch('/api/audit-and-heal', {
@@ -67,11 +84,35 @@ export default function App() {
 
       const data = await response.json();
       setResult(data);
+      
+      // Save to history
+      const newItem: HistoryItem = {
+        id: Math.random().toString(36).substring(2, 9),
+        timestamp: Date.now(),
+        code,
+        result: data
+      };
+      
+      setHistory(prev => {
+        const newHistory = [newItem, ...prev].slice(0, 50); // Keep last 50
+        localStorage.setItem('sentinel_history', JSON.stringify(newHistory));
+        return newHistory;
+      });
+      setActiveHistoryId(newItem.id);
+      
     } catch (err: any) {
       setError(err.message);
     } finally {
       setIsLoading(false);
     }
+  };
+  
+  const loadHistoryItem = (item: HistoryItem) => {
+    setCode(item.code);
+    setResult(item.result);
+    setActiveHistoryId(item.id);
+    setActiveTab('hospital');
+    setError(null);
   };
 
   return (
@@ -112,13 +153,21 @@ export default function App() {
            
            <div className="h-4 w-[1px] bg-white/10"></div>
 
-          <button
-            onClick={handleAudit}
-            disabled={isLoading || !code.trim()}
-            className="px-4 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold rounded transition-colors shadow-lg shadow-blue-900/20 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isLoading ? 'ANALYZING...' : 'INITIALIZE SCAN'}
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleNewScan}
+              className="px-4 py-1.5 bg-white/5 hover:bg-white/10 text-slate-300 text-xs font-semibold rounded transition-colors"
+            >
+              NEW
+            </button>
+            <button
+              onClick={handleAudit}
+              disabled={isLoading || !code.trim()}
+              className="px-4 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold rounded transition-colors shadow-lg shadow-blue-900/20 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isLoading ? 'ANALYZING...' : 'INITIALIZE SCAN'}
+            </button>
+          </div>
         </div>
       </header>
 
@@ -132,30 +181,20 @@ export default function App() {
 
       {/* Main Content Area */}
       <main className="flex-1 flex overflow-hidden">
+        <HistorySidebar 
+          history={history} 
+          onSelect={loadHistoryItem} 
+          activeId={activeHistoryId} 
+          isOpen={isHistoryOpen}
+          onToggle={() => setIsHistoryOpen(!isHistoryOpen)}
+        />
+        
         {activeTab === 'hospital' ? (
-           <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
-              {/* Input Area (Visible in Hospital View) */}
-              <aside className="w-full lg:w-72 flex flex-col border-r border-white/10 bg-[#0d0d0d] z-10">
-                <div className="px-6 py-4 border-b border-white/10 flex items-center gap-2">
-                  <FileCode size={16} className="text-slate-500" />
-                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest italic">Input Payload</label>
-                </div>
-                <textarea
-                  value={code}
-                  onChange={(e) => setCode(e.target.value)}
-                  placeholder="Paste vulnerable code here..."
-                  className="flex-1 w-full bg-transparent p-6 font-mono text-[11px] text-slate-400 focus:outline-none resize-none custom-scrollbar"
-                  spellCheck="false"
-                />
-              </aside>
-              
-              {/* Results Area */}
-              <div className="flex-1 min-w-0 bg-black">
-                <HospitalView originalCode={code} result={result} isLoading={isLoading} />
-              </div>
+           <div className="flex-1 min-w-0 bg-black">
+             <HospitalView code={code} setCode={setCode} result={result} isLoading={isLoading} />
            </div>
         ) : (
-           <div className="flex-1 p-6 bg-black">
+           <div className="flex-1 p-6 bg-black overflow-y-auto">
               <TestSuiteView result={result} />
            </div>
         )}
