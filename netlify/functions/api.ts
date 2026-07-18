@@ -6,7 +6,7 @@ const app = express();
 app.use(express.json());
 
 // API Routes
-app.post('/api/audit-and-heal', async (req, res) => {
+const handleAudit = async (req: express.Request, res: express.Response) => {
   try {
     const { code } = req.body;
     if (!code) {
@@ -82,6 +82,10 @@ app.post('/api/audit-and-heal', async (req, res) => {
     console.error('Error during audit and heal:', error);
     res.status(500).json({ error: 'Failed to process code. Please try again.' });
   }
-});
+};
+
+app.post('/api/audit-and-heal', handleAudit);
+app.post('/.netlify/functions/api/audit-and-heal', handleAudit);
+app.post('/audit-and-heal', handleAudit);
 
 export const handler = serverless(app);

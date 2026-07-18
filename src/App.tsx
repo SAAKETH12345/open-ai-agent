@@ -54,8 +54,15 @@ export default function App() {
       });
 
       if (!response.ok) {
-        const errData = await response.json();
-        throw new Error(errData.error || 'Failed to process request');
+        const errText = await response.text();
+        let errMsg = 'Failed to process request';
+        try {
+          const errData = JSON.parse(errText);
+          errMsg = errData.error || errData.errorMessage || errData.message || JSON.stringify(errData);
+        } catch (e) {
+          errMsg = `Server Error: ${response.status} ${response.statusText} - ${errText.substring(0, 50)}`;
+        }
+        throw new Error(errMsg);
       }
 
       const data = await response.json();
