@@ -1,0 +1,16 @@
+[build]
+  command = "npm run build"
+  publish = "dist" # Vite outputs the frontend build here
+  functions = "netlify/functions"
+
+# Redirect all /api/* requests to your serverless function
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/api/:splat"
+  status = 200
+
+# Catch-all fallback for React Router (Single Page App)
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
