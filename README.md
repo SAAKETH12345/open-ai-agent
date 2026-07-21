@@ -34,50 +34,12 @@
 
 ---
 
-## 🚀 Getting Started
+## 🚀 Live Demo
 
-### Prerequisites
-Ensure you have the following installed on your system:
-- **Node.js** (v18 or higher recommended)
-- **npm** (v9 or higher)
+**Experience Sentinel Engine in action:**
+[**Launch Sentinel Engine**](https://ais-pre-wklt46bap4oefbzza3hajp-47633325444.asia-southeast1.run.app)
 
-### Installation
-
-1. **Clone the repository:**
-   ```bash
-   git clone https://github.com/your-username/sentinel-engine.git
-   cd sentinel-engine
-   ```
-
-2. **Install dependencies:**
-   ```bash
-   npm install
-   ```
-
-3. **Environment Configuration:**
-   Copy the example environment file and configure any necessary API credentials.
-   ```bash
-   cp .env.example .env
-   ```
-
-### 💻 Development
-
-Start the local development server with hot-reload enabled:
-```bash
-npm run dev
-```
-
-### 🏗️ Build & Production
-
-To compile the application for production, run the build command. This bundles both the React frontend and the Express backend:
-```bash
-npm run build
-```
-
-Once the build successfully completes, you can serve the compiled application using:
-```bash
-npm start
-```
+*Note: This application was built and is currently hosted on Google AI Studio.*
 
 ---
 
